@@ -21,6 +21,62 @@ public class BannerService(BlogServiceContext context,
 	private readonly IValidator<AddBannerDto> _addValidator = addValidator;
 	private readonly IValidator<EditBannerDto> _editValidator = editValidator;
 
+
+	private async Task<Result> Get(Guid id, Expression<Func<Banner, bool>> predicate)
+	{
+		if (id == Guid.Empty)
+			return CustomErrors.InvalidData("Id not Assigned!");
+
+		Banner? banner = await _context.Banners.SingleOrDefaultAsync(predicate);
+		if (banner == null)
+			return CustomErrors.NotFoundData();
+
+		return CustomResults.SuccessOperation(banner);
+	}
+
+	public async Task<Result> GetInfo(Guid id)
+	{
+		Result result = await Get(id, b => b.Id == id && b.Status == BannerStatus.Visible);
+
+		if (result.Status)
+			return CustomResults.SuccessOperation(result.Data.Adapt<BannerInfo>());
+		else
+			return result;
+	}
+	public async Task<Result> GetDetail(Guid id)
+	{
+		Result result = await Get(id, b => b.Id == id);
+
+		if (result.Status)
+			return CustomResults.SuccessOperation(result.Data.Adapt<BannerDetail>());
+		else
+			return result;
+	}
+
+	public async Task<Result> GetAllInfo()
+	{
+		List<Banner> banners = await _context.Banners.Where(b => b.Status == BannerStatus.Visible)
+																			.ToListAsync();
+
+		return CustomResults.SuccessOperation(banners.Adapt<List<BannerInfo>>());
+	}
+
+	public async Task<Result> GetAllDetail(int pageIndex, int pageSize, BannerStatus? status)
+	{
+		IQueryable<Banner> query = _context.Banners;
+		if (status != null)
+			query.Where(b => b.Status == status);
+
+		pageIndex = pageIndex < 1 ? 1 : pageIndex;
+
+		List<Banner> banners = await query.Skip((pageIndex - 1) * pageSize)
+															.Take(pageSize)
+															.ToListAsync();
+
+		return CustomResults.SuccessOperation(banners.Adapt<List<BannerDetail>>());
+	}
+
+
 	public async Task<Result> Add(AddBannerDto model)
 	{
 		ValidationResult validationResult = _addValidator.Validate(model);

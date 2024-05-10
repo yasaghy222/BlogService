@@ -34,48 +34,29 @@ public static class ModelBuilderConfig
 		{
 			p.HasOne(p => p.Banner)
 			  .WithMany(b => b.Positions)
-			  .HasForeignKey(p => p.ForeignId)
-			  .OnDelete(DeleteBehavior.Cascade);
+			  .HasForeignKey(p => p.ForeignId);
 
 			p.Navigation(p => p.Banner).AutoInclude();
 
 			p.HasOne(p => p.Blog)
 			  .WithMany(b => b.Positions)
-			  .HasForeignKey(p => p.ForeignId)
-			  .OnDelete(DeleteBehavior.Cascade);
+			  .HasForeignKey(p => p.ForeignId);
 
 			p.Navigation(p => p.Blog).AutoInclude();
 
-			p.HasOne(p => p.Slide)
-			  .WithMany(s => s.Positions)
-			  .HasForeignKey(p => p.ForeignId)
-			  .OnDelete(DeleteBehavior.Cascade);
-
-			p.Navigation(p => p.Slide).AutoInclude();
-
 			p.HasOne(p => p.Slider)
 			  .WithMany(s => s.Positions)
-			  .HasForeignKey(p => p.ForeignId)
-			  .OnDelete(DeleteBehavior.Cascade);
+			  .HasForeignKey(p => p.ForeignId);
 
 			p.Navigation(p => p.Slider).AutoInclude();
 		});
 
-		modelBuilder.Entity<SliderSlide>(ss =>
+		modelBuilder.Entity<Slide>(ss =>
 			{
-				ss.HasOne(ss => ss.Slide)
-				  .WithMany(s => s.SliderSlides)
-				  .HasForeignKey(b => b.SlideId)
+				ss.HasOne(s => s.Slider)
+					.WithMany(s => s.Slides)
+					.HasForeignKey(s => s.SliderId)
 					.OnDelete(DeleteBehavior.Cascade);
-
-				ss.Navigation(ss => ss.Slide).AutoInclude();
-
-				ss.HasOne(ss => ss.Slider)
-				  .WithMany(s => s.SliderSlides)
-				  .HasForeignKey(b => b.SliderId)
-				  .OnDelete(DeleteBehavior.Cascade);
-
-				ss.Navigation(ss => ss.Slider).AutoInclude();
 			});
 	}
 }

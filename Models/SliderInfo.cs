@@ -7,12 +7,12 @@ using BlogService.Enums;
 
 namespace BlogService.Models
 {
-    public class BannerDetail : BaseEntity
+    public class SliderInfo
     {
-        public string? Title { get; set; }
+        public Guid Id { get; set; }
+        public string? Key { get; set; }
         public string? Description { get; set; }
-        public string? Link { get; set; }
 
-        public BannerStatus Status { get; set; }
+        public ICollection<SlideInfo>? Slides { get; set; }
     }
 }

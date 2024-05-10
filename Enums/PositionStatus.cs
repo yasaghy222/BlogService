@@ -5,10 +5,9 @@ using System.Threading.Tasks;
 
 namespace BlogService.Enums
 {
-    public enum PositionType : byte
+    public enum PositionStatus : byte
     {
-        Banner = 0,
-        Slider = 1,
-        Blog = 2,
+        Hide = 0,
+        Visible = 1,
     }
 }

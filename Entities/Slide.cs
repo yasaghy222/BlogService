@@ -15,7 +15,7 @@ namespace BlogService.Entities
 
         public SlideStatus Status { get; set; } = SlideStatus.Hide;
 
-        public ICollection<SliderSlide>? SliderSlides { get; set; }
-        public ICollection<Position>? Positions { get; set; }
+        public Guid SliderId { get; set; }
+        public required Slider Slider { get; set; }
     }
 }

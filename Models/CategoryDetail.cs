@@ -7,9 +7,8 @@ using BlogService.Enums;
 
 namespace BlogService.Models
 {
-    public class CategoryDetail
+    public class CategoryDetail : BaseEntity
     {
-        public Guid Id { get; set; }
         public Guid? ParentId { get; set; }
         public CategoryParent? Parent { get; set; }
 
@@ -18,6 +17,6 @@ namespace BlogService.Models
 
         public string? Description { get; set; }
 
-        public ICollection<BlogInfo> Blogs { get; set; }
+        public ICollection<BlogInfo>? Blogs { get; set; }
     }
 }

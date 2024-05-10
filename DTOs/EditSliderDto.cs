@@ -8,7 +8,7 @@ namespace BlogService.DTOs
     public class EditSliderDto
     {
         public Guid Id { get; set; }
-        public string? Title { get; set; }
+        public string? Key { get; set; }
         public string? Description { get; set; }
     }
 }

@@ -13,8 +13,6 @@ public class BlogServiceContext(DbContextOptions<BlogServiceContext> options) : 
 	public DbSet<Position> Positions { get; set; }
 	public DbSet<Slide> Slides { get; set; }
 	public DbSet<Slider> Sliders { get; set; }
-	public DbSet<SliderSlide> SliderSlides { get; set; }
-
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{

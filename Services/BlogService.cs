@@ -102,6 +102,8 @@ public class BlogService(BlogServiceContext context,
 
 	public async Task<Result> GetAllInfo(int pageIndex = 1, int pageSize = 10)
 	{
+		pageIndex = pageIndex < 1 ? 1 : pageIndex;
+
 		List<Blog> blogs = await _context.Blogs.Where(b => b.Status == BlogStatus.Confirmed)
 																			.OrderByDescending(b => b.PublishedDate)
 																			.Skip((pageIndex - 1) * pageSize)
@@ -111,8 +113,9 @@ public class BlogService(BlogServiceContext context,
 		return CustomResults.SuccessOperation(blogs.Adapt<List<BlogInfo>>());
 	}
 
-	public async Task<Result> GetAllDetail(int pageIndex, int pageSize, BlogStatus? status)
+	public async Task<Result> GetAllDetail(int pageIndex = 1, int pageSize = 10, BlogStatus? status = null)
 	{
+		pageIndex = pageIndex < 1 ? 1 : pageIndex;
 
 		IQueryable<Blog> query = _context.Blogs;
 		if (status != null)

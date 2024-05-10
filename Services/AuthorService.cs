@@ -56,6 +56,8 @@ public class AuthorService(BlogServiceContext context,
 		{
 			_context.Entry(oldData).State = EntityState.Detached;
 
+			oldData = model.Adapt<Author>();
+
 			Author author = model.Adapt<Author>();
 			_context.Authors.Update(author);
 

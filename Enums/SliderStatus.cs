@@ -1,6 +1,6 @@
 namespace BlogService.Enums
 {
-    public enum SlideStatus : byte
+    public enum SliderStatus : byte
     {
         Hide = 0,
         Visible = 1,

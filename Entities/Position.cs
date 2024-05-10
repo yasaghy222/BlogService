@@ -13,9 +13,9 @@ namespace BlogService.Entities
         public Guid ForeignId { get; set; }
 
         public PositionType Type { get; set; } = PositionType.Banner;
+        public PositionStatus Status { get; set; } = PositionStatus.Hide;
 
         public Banner? Banner { get; set; }
-        public Slide? Slide { get; set; }
         public Slider? Slider { get; set; }
         public Blog? Blog { get; set; }
     }
