@@ -5,6 +5,7 @@ using BlogService.Models;
 using BlogService.Enums;
 using BlogService.Data;
 using BlogService.Services;
+using FileService;
 
 namespace BlogService.Controllers;
 
@@ -12,9 +13,10 @@ namespace BlogService.Controllers;
 [Route("[controller]")]
 public class SlideController(BlogServiceContext context,
 							  IValidator<AddSlideDto> addValidator,
-							  IValidator<EditSlideDto> editValidator) : ControllerBase
+							  IValidator<EditSlideDto> editValidator,
+							  IValidator<AddFileDto> fileValidator) : ControllerBase
 {
-	private readonly SlideService _service = new(context, addValidator, editValidator);
+	private readonly SlideService _service = new(context, addValidator, editValidator, fileValidator);
 
 	[HttpGet]
 	[Route("/[controller]/{sliderId}")]
@@ -25,16 +27,16 @@ public class SlideController(BlogServiceContext context,
 	}
 
 	[HttpPut]
-	public async Task<IActionResult> Put(AddSlideDto model)
+	public async Task<IActionResult> Put(EditSlideDto model)
 	{
-		Result result = await _service.Add(model);
+		Result result = await _service.Edit(model);
 		return StatusCode(result.StatusCode, result.Data);
 	}
 
 	[HttpPost]
-	public async Task<IActionResult> Post(EditSlideDto model)
+	public async Task<IActionResult> Post(AddSlideDto model)
 	{
-		Result result = await _service.Edit(model);
+		Result result = await _service.Add(model);
 		return StatusCode(result.StatusCode, result.Data);
 	}
 

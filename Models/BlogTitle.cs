@@ -7,6 +7,7 @@ namespace BlogService.Models
 {
     public class BlogTitle
     {
+        public required string ImagePath { get; set; }
         public Guid Id { get; set; }
         public required string Title { get; set; }
         public required string EnTitle { get; set; }

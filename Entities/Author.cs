@@ -9,6 +9,7 @@ namespace BlogService.Entities
 {
     public class Author : BaseEntity
     {
+        public required string ImagePath { get; set; }
         public required string Title { get; set; }
         public required string Description { get; set; }
         public AuthorStatus Status { get; set; } = AuthorStatus.UnConfirmed;

@@ -5,6 +5,7 @@ using BlogService.Models;
 using BlogService.Enums;
 using BlogService.Data;
 using BlogService.Services;
+using FileService;
 
 namespace BlogService.Controllers;
 
@@ -12,13 +13,14 @@ namespace BlogService.Controllers;
 [Route("[controller]")]
 public class BannerController(BlogServiceContext context,
 							  IValidator<AddBannerDto> addValidator,
-							  IValidator<EditBannerDto> editValidator) : ControllerBase
+							  IValidator<EditBannerDto> editValidator,
+							  IValidator<AddFileDto> fileValidator) : ControllerBase
 {
-	private readonly BannerService _service = new(context, addValidator, editValidator);
+	private readonly BannerService _service = new(context, addValidator, editValidator, fileValidator);
 
 	[HttpGet]
-	[Route("/[controller]/Info/{id}")]
-	public async Task<IActionResult> GetInfo(Guid id)
+	[Route("/[controller]/{id}/{type}")]
+	public async Task<IActionResult> GetInfo(Guid id, GetDataType type)
 	{
 		Result result = await _service.GetInfo(id);
 		return StatusCode(result.StatusCode, result.Data);
@@ -50,16 +52,16 @@ public class BannerController(BlogServiceContext context,
 
 
 	[HttpPut]
-	public async Task<IActionResult> Put(AddBannerDto model)
+	public async Task<IActionResult> Put(EditBannerDto model)
 	{
-		Result result = await _service.Add(model);
+		Result result = await _service.Edit(model);
 		return StatusCode(result.StatusCode, result.Data);
 	}
 
 	[HttpPost]
-	public async Task<IActionResult> Post(EditBannerDto model)
+	public async Task<IActionResult> Post(AddBannerDto model)
 	{
-		Result result = await _service.Edit(model);
+		Result result = await _service.Add(model);
 		return StatusCode(result.StatusCode, result.Data);
 	}
 

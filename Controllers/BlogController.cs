@@ -4,6 +4,7 @@ using BlogService.DTOs;
 using BlogService.Models;
 using Microsoft.AspNetCore.Mvc;
 using BlogService.Enums;
+using FileService;
 
 namespace BlogService.Controllers;
 
@@ -11,9 +12,10 @@ namespace BlogService.Controllers;
 [Route("[controller]")]
 public class BlogController(BlogServiceContext context,
 							  IValidator<AddBlogDto> addValidator,
-							  IValidator<EditBlogDto> editValidator) : ControllerBase
+							  IValidator<EditBlogDto> editValidator,
+							  IValidator<AddFileDto> fileValidator) : ControllerBase
 {
-	private readonly Services.BlogService _service = new(context, addValidator, editValidator);
+	private readonly Services.BlogService _service = new(context, addValidator, editValidator, fileValidator);
 
 	[HttpGet]
 	[Route("/[controller]/Info/{id}")]

@@ -9,6 +9,7 @@ namespace BlogService.Models
 {
     public class BlogDetail : BaseStatus<BlogStatus>
     {
+        public required string ImagePath { get; set; }
         public required string EnTitle { get; set; }
         public required string Title { get; set; }
         public required string Description { get; set; }

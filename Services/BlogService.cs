@@ -10,14 +10,17 @@ using BlogService.Shared;
 using BlogService.Entities;
 using BlogService.Enums;
 using System.Linq.Expressions;
+using FileService;
 
 namespace BlogService.Services;
 
 public class BlogService(BlogServiceContext context,
 					 IValidator<AddBlogDto> addValidator,
-					 IValidator<EditBlogDto> editValidator) : IBlogService, IDisposable
+					 IValidator<EditBlogDto> editValidator,
+					 IValidator<AddFileDto> fileValidator) : IBlogService, IDisposable
 {
 	private readonly BlogServiceContext _context = context;
+	private readonly FileService.FileService _fileService = new(fileValidator);
 	private readonly IValidator<AddBlogDto> _addValidator = addValidator;
 	private readonly IValidator<EditBlogDto> _editValidator = editValidator;
 
@@ -27,17 +30,29 @@ public class BlogService(BlogServiceContext context,
 		if (!validationResult.IsValid)
 			return CustomErrors.InvalidData(validationResult.Errors);
 
+		Category? category = await _context.Categories.SingleOrDefaultAsync(s => s.Id == model.CategoryId);
+		if (category == null)
+			return CustomErrors.NotFoundData("دستبندی انتخاب شده یافت نشد!");
+
+		Blog blog = model.Adapt<Blog>();
+
+		Result fileResult = await _fileService.Add(new(blog.Id, model.Image, "Blog"));
+		if (!fileResult.Status)
+			return fileResult;
+
+		blog.ImagePath = fileResult.Data?.ToString() ?? "";
+
 		try
 		{
-			Blog blog = model.Adapt<Blog>();
 			await _context.Blogs.AddAsync(blog);
-
 			await _context.SaveChangesAsync();
 
+			blog.Category = category;
 			return CustomResults.SuccessCreation(blog.Adapt<BlogDetail>());
 		}
 		catch (Exception e)
 		{
+			_fileService.Delete(blog.ImagePath);
 			return CustomErrors.InternalServer(e.Message);
 		}
 	}
@@ -52,19 +67,40 @@ public class BlogService(BlogServiceContext context,
 		if (oldData == null)
 			return CustomErrors.NotFoundData();
 
+		string oldPath = oldData.ImagePath;
+
+		_context.Entry(oldData).State = EntityState.Detached;
+		oldData = model.Adapt<Blog>();
+		oldData.ImagePath = oldPath;
+
+		if (model.Image != null)
+		{
+			Result fileResult = await _fileService.Add(new(oldData.Id, model.Image, "Blog"));
+			if (!fileResult.Status)
+				return fileResult;
+
+			oldData.ImagePath = fileResult.Data?.ToString() ?? "";
+		}
+
 		try
 		{
-			_context.Entry(oldData).State = EntityState.Detached;
-
-			Blog blog = model.Adapt<Blog>();
-			_context.Blogs.Update(blog);
-
+			_context.Blogs.Update(oldData);
 			await _context.SaveChangesAsync();
 
-			return CustomResults.SuccessUpdate(blog.Adapt<BlogDetail>());
+			if (model.Image != null)
+			{
+				Result fileResult = _fileService.Delete(oldPath);
+				if (!fileResult.Status)
+					return fileResult;
+			}
+
+			return CustomResults.SuccessUpdate(oldData.Adapt<BlogDetail>());
 		}
 		catch (Exception e)
 		{
+			if (model.Image != null)
+				_fileService.Delete(oldData.ImagePath);
+
 			return CustomErrors.InternalServer(e.Message);
 		}
 	}

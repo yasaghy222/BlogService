@@ -11,14 +11,17 @@ using BlogService.Data;
 using BlogService.DTOs;
 using System.Linq.Expressions;
 using Microsoft.IdentityModel.Tokens;
+using FileService;
 
 namespace BlogService.Services;
 
 public class SlideService(BlogServiceContext context,
 					 IValidator<AddSlideDto> addValidator,
-					 IValidator<EditSlideDto> editValidator) : ISlideService, IDisposable
+					 IValidator<EditSlideDto> editValidator,
+					 IValidator<AddFileDto> fileValidator) : ISlideService, IDisposable
 {
 	private readonly BlogServiceContext _context = context;
+	private readonly FileService.FileService _fileService = new(fileValidator);
 	private readonly IValidator<AddSlideDto> _addValidator = addValidator;
 	private readonly IValidator<EditSlideDto> _editValidator = editValidator;
 
@@ -42,17 +45,24 @@ public class SlideService(BlogServiceContext context,
 		if (!validationResult.IsValid)
 			return CustomErrors.InvalidData(validationResult.Errors);
 
+		Slide slide = model.Adapt<Slide>();
+
+		Result fileResult = await _fileService.Add(new(slide.Id, model.Image, "Slide"));
+		if (!fileResult.Status)
+			return fileResult;
+
+		slide.ImagePath = fileResult.Data?.ToString() ?? "";
+
 		try
 		{
-			Slide slide = model.Adapt<Slide>();
 			await _context.Slides.AddAsync(slide);
-
 			await _context.SaveChangesAsync();
 
 			return CustomResults.SuccessCreation(slide.Adapt<SlideDetail>());
 		}
 		catch (Exception e)
 		{
+			_fileService.Delete(slide.ImagePath);
 			return CustomErrors.InternalServer(e.Message);
 		}
 	}
@@ -66,21 +76,40 @@ public class SlideService(BlogServiceContext context,
 		if (oldData == null)
 			return CustomErrors.NotFoundData();
 
+		string oldPath = oldData.ImagePath;
+
+		_context.Entry(oldData).State = EntityState.Detached;
+		oldData = model.Adapt<Slide>();
+		oldData.ImagePath = oldPath;
+
+		if (model.Image != null)
+		{
+			Result fileResult = await _fileService.Add(new(oldData.Id, model.Image, "Slide"));
+			if (!fileResult.Status)
+				return fileResult;
+
+			oldData.ImagePath = fileResult.Data?.ToString() ?? "";
+		}
+
 		try
 		{
-			_context.Entry(oldData).State = EntityState.Detached;
-
-			oldData = model.Adapt<Slide>();
-
-			Slide slide = model.Adapt<Slide>();
-			_context.Slides.Update(slide);
-
+			_context.Slides.Update(oldData);
 			await _context.SaveChangesAsync();
 
-			return CustomResults.SuccessUpdate(slide.Adapt<SlideDetail>());
+			if (model.Image != null)
+			{
+				Result fileResult = _fileService.Delete(oldPath);
+				if (!fileResult.Status)
+					return fileResult;
+			}
+
+			return CustomResults.SuccessUpdate(oldData.Adapt<SlideDetail>());
 		}
 		catch (Exception e)
 		{
+			if (model.Image != null)
+				_fileService.Delete(oldData.ImagePath);
+
 			return CustomErrors.InternalServer(e.Message);
 		}
 	}

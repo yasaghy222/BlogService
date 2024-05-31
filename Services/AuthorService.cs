@@ -10,14 +10,17 @@ using BlogService.Enums;
 using BlogService.Data;
 using BlogService.DTOs;
 using System.Linq.Expressions;
+using FileService;
 
 namespace BlogService.Services;
 
 public class AuthorService(BlogServiceContext context,
 					 IValidator<AddAuthorDto> addValidator,
-					 IValidator<EditAuthorDto> editValidator) : IAuthorService, IDisposable
+					 IValidator<EditAuthorDto> editValidator,
+					 IValidator<AddFileDto> fileValidator) : IAuthorService, IDisposable
 {
 	private readonly BlogServiceContext _context = context;
+	private readonly FileService.FileService _fileService = new(fileValidator);
 	private readonly IValidator<AddAuthorDto> _addValidator = addValidator;
 	private readonly IValidator<EditAuthorDto> _editValidator = editValidator;
 
@@ -27,17 +30,22 @@ public class AuthorService(BlogServiceContext context,
 		if (!validationResult.IsValid)
 			return CustomErrors.InvalidData(validationResult.Errors);
 
+		Author author = model.Adapt<Author>();
+
+		Result fileResult = await _fileService.Add(new(author.Id, model.Image, "Author"));
+		if (!fileResult.Status)
+			return fileResult;
+
 		try
 		{
-			Author author = model.Adapt<Author>();
 			await _context.Authors.AddAsync(author);
-
 			await _context.SaveChangesAsync();
 
 			return CustomResults.SuccessCreation(author.Adapt<AuthorDetail>());
 		}
 		catch (Exception e)
 		{
+			_fileService.Delete(author.ImagePath);
 			return CustomErrors.InternalServer(e.Message);
 		}
 	}
@@ -52,21 +60,40 @@ public class AuthorService(BlogServiceContext context,
 		if (oldData == null)
 			return CustomErrors.NotFoundData();
 
+		string oldPath = oldData.ImagePath;
+
+		_context.Entry(oldData).State = EntityState.Detached;
+		oldData = model.Adapt<Author>();
+		oldData.ImagePath = oldPath;
+
+		if (model.Image != null)
+		{
+			Result fileResult = await _fileService.Add(new(oldData.Id, model.Image, "Author"));
+			if (!fileResult.Status)
+				return fileResult;
+
+			oldData.ImagePath = fileResult.Data?.ToString() ?? "";
+		}
+
 		try
 		{
-			_context.Entry(oldData).State = EntityState.Detached;
-
-			oldData = model.Adapt<Author>();
-
-			Author author = model.Adapt<Author>();
-			_context.Authors.Update(author);
-
+			_context.Authors.Update(oldData);
 			await _context.SaveChangesAsync();
 
-			return CustomResults.SuccessUpdate(author.Adapt<AuthorDetail>());
+			if (model.Image != null)
+			{
+				Result fileResult = _fileService.Delete(oldPath);
+				if (!fileResult.Status)
+					return fileResult;
+			}
+
+			return CustomResults.SuccessUpdate(oldData.Adapt<AuthorDetail>());
 		}
 		catch (Exception e)
 		{
+			if (model.Image != null)
+				_fileService.Delete(oldData.ImagePath);
+
 			return CustomErrors.InternalServer(e.Message);
 		}
 	}
@@ -112,7 +139,7 @@ public class AuthorService(BlogServiceContext context,
 		return CustomResults.SuccessOperation(authors.Adapt<List<AuthorInfo>>());
 	}
 
-	public async Task<Result> GetAllDetail(int pageIndex, int pageSize, AuthorStatus? status)
+	public async Task<Result> GetAllDetail(int pageIndex = 1, int pageSize = 10, AuthorStatus? status = null)
 	{
 		IQueryable<Author> query = _context.Authors;
 		if (status != null)
@@ -158,7 +185,13 @@ public class AuthorService(BlogServiceContext context,
 		{
 			int effectedRowCount = await _context.Authors.Where(a => a.Id == id).ExecuteDeleteAsync();
 			if (effectedRowCount == 1)
+			{
+				Result fileResult = await _fileService.Delete(oldData.ImagePath);
+				if (!fileResult.Status)
+					return fileResult;
+
 				return CustomResults.SuccessDelete();
+			}
 			else
 				return CustomErrors.NotFoundData();
 		}

@@ -4,6 +4,7 @@ namespace BlogService.Entities
 {
     public class Blog : BaseEntity
     {
+        public required string ImagePath { get; set; }
         public required string EnTitle { get; set; }
         public required string Title { get; set; }
         public required string Description { get; set; }

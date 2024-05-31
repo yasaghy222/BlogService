@@ -10,14 +10,17 @@ using BlogService.Enums;
 using BlogService.Data;
 using BlogService.DTOs;
 using System.Linq.Expressions;
+using FileService;
 
 namespace BlogService.Services;
 
 public class BannerService(BlogServiceContext context,
 					 IValidator<AddBannerDto> addValidator,
-					 IValidator<EditBannerDto> editValidator) : IBannerService, IDisposable
+					 IValidator<EditBannerDto> editValidator,
+					 IValidator<AddFileDto> fileValidator) : IBannerService, IDisposable
 {
 	private readonly BlogServiceContext _context = context;
+	private readonly FileService.FileService _fileService = new(fileValidator);
 	private readonly IValidator<AddBannerDto> _addValidator = addValidator;
 	private readonly IValidator<EditBannerDto> _editValidator = editValidator;
 
@@ -83,17 +86,24 @@ public class BannerService(BlogServiceContext context,
 		if (!validationResult.IsValid)
 			return CustomErrors.InvalidData(validationResult.Errors);
 
+		Banner banner = model.Adapt<Banner>();
+
+		Result fileResult = await _fileService.Add(new(banner.Id, model.Image, "Banner"));
+		if (!fileResult.Status)
+			return fileResult;
+
+		banner.ImagePath = fileResult.Data?.ToString() ?? "";
+
 		try
 		{
-			Banner banner = model.Adapt<Banner>();
 			await _context.Banners.AddAsync(banner);
-
 			await _context.SaveChangesAsync();
 
 			return CustomResults.SuccessCreation(banner.Adapt<BannerDetail>());
 		}
 		catch (Exception e)
 		{
+			_fileService.Delete(banner.ImagePath);
 			return CustomErrors.InternalServer(e.Message);
 		}
 	}
@@ -108,19 +118,40 @@ public class BannerService(BlogServiceContext context,
 		if (oldData == null)
 			return CustomErrors.NotFoundData();
 
+		string oldPath = oldData.ImagePath;
+
+		_context.Entry(oldData).State = EntityState.Detached;
+		Banner banner = model.Adapt<Banner>();
+		oldData.ImagePath = oldPath;
+
+		if (model.Image != null)
+		{
+			Result fileResult = await _fileService.Add(new(oldData.Id, model.Image, "Banner"));
+			if (!fileResult.Status)
+				return fileResult;
+
+			oldData.ImagePath = fileResult.Data?.ToString() ?? "";
+		}
+
 		try
 		{
-			_context.Entry(oldData).State = EntityState.Detached;
-
-			Banner banner = model.Adapt<Banner>();
 			_context.Banners.Update(banner);
-
 			await _context.SaveChangesAsync();
+
+			if (model.Image != null)
+			{
+				Result fileResult = _fileService.Delete(oldPath);
+				if (!fileResult.Status)
+					return fileResult;
+			}
 
 			return CustomResults.SuccessUpdate(banner.Adapt<BannerDetail>());
 		}
 		catch (Exception e)
 		{
+			if (model.Image != null)
+				_fileService.Delete(oldData.ImagePath);
+
 			return CustomErrors.InternalServer(e.Message);
 		}
 	}
@@ -157,7 +188,13 @@ public class BannerService(BlogServiceContext context,
 		{
 			int effectedRowCount = await _context.Banners.Where(b => b.Id == id).ExecuteDeleteAsync();
 			if (effectedRowCount == 1)
+			{
+				Result fileResult = await _fileService.Delete(oldData.ImagePath);
+				if (!fileResult.Status)
+					return fileResult;
+
 				return CustomResults.SuccessDelete();
+			}
 			else
 				return CustomErrors.NotFoundData();
 		}

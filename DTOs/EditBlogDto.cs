@@ -8,6 +8,7 @@ namespace BlogService.DTOs
 {
     public class EditBlogDto
     {
+        public IFormFile? Image { get; set; }
         public Guid Id { get; set; }
         public required string EnTitle { get; set; }
         public required string Title { get; set; }

@@ -5,6 +5,7 @@ using BlogService.Models;
 using BlogService.Enums;
 using BlogService.Data;
 using BlogService.Services;
+using FileService;
 
 namespace BlogService.Controllers;
 
@@ -12,54 +13,51 @@ namespace BlogService.Controllers;
 [Route("[controller]")]
 public class AuthorController(BlogServiceContext context,
 							  IValidator<AddAuthorDto> addValidator,
-							  IValidator<EditAuthorDto> editValidator) : ControllerBase
+							  IValidator<EditAuthorDto> editValidator,
+							  IValidator<AddFileDto> fileValidator) : ControllerBase
 {
-	private readonly AuthorService _service = new(context, addValidator, editValidator);
+	private readonly AuthorService _service = new(context, addValidator, editValidator, fileValidator);
 
 	[HttpGet]
-	[Route("/[controller]/Info/{id}")]
-	public async Task<IActionResult> GetInfo(Guid id)
+	[Route("/[controller]/{id}/{type}")]
+	public async Task<IActionResult> GetInfo(Guid id, GetDataType type)
 	{
-		Result result = await _service.GetInfo(id);
+		Result result = type switch
+		{
+			GetDataType.Info => await _service.GetInfo(id),
+			GetDataType.Detail => await _service.GetDetail(id),
+			_ => await _service.GetInfo(id),
+		};
+
 		return StatusCode(result.StatusCode, result.Data);
 	}
 
 	[HttpGet]
-	[Route("/[controller]/Detail/{id}")]
-	public async Task<IActionResult> GetDetail(Guid id)
+	[Route("/[controller]/{type}")]
+	public async Task<IActionResult> Get(GetDataType type, int pageIndex, int pageSize, AuthorStatus? status)
 	{
-		Result result = await _service.GetDetail(id);
+
+		Result result = type switch
+		{
+			GetDataType.Info => await _service.GetAllInfo(pageIndex, pageSize),
+			GetDataType.Detail => await _service.GetAllDetail(pageIndex, pageSize, status),
+			_ => await _service.GetAllInfo(pageIndex, pageSize),
+		};
+
 		return StatusCode(result.StatusCode, result.Data);
 	}
-
-	[HttpGet]
-	[Route("/[controller]/Info")]
-	public async Task<IActionResult> GetInfo()
-	{
-		Result result = await _service.GetAllInfo();
-		return StatusCode(result.StatusCode, result.Data);
-	}
-
-	[HttpGet]
-	[Route("/[controller]/Detail")]
-	public async Task<IActionResult> GetDetail(int pageIndex = 1, int pageSize = 10, AuthorStatus? status = null)
-	{
-		Result result = await _service.GetAllDetail(pageIndex, pageSize, status);
-		return StatusCode(result.StatusCode, result.Data);
-	}
-
 
 	[HttpPut]
-	public async Task<IActionResult> Put(AddAuthorDto model)
+	public async Task<IActionResult> Put(EditAuthorDto model)
 	{
-		Result result = await _service.Add(model);
+		Result result = await _service.Edit(model);
 		return StatusCode(result.StatusCode, result.Data);
 	}
 
 	[HttpPost]
-	public async Task<IActionResult> Post(EditAuthorDto model)
+	public async Task<IActionResult> Post(AddAuthorDto model)
 	{
-		Result result = await _service.Edit(model);
+		Result result = await _service.Add(model);
 		return StatusCode(result.StatusCode, result.Data);
 	}
 

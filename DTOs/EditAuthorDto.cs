@@ -7,6 +7,7 @@ namespace BlogService.DTOs
 {
     public class EditAuthorDto
     {
+        public IFormFile? Image { get; set; }
         public Guid Id { get; set; }
         public required string Title { get; set; }
         public required string Description { get; set; }

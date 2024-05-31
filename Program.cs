@@ -10,7 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.RegisterMapsterConfiguration();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
-string? connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// string? connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+string? connectionString = builder.Configuration.GetConnectionString("DockerConnection");
 builder.Services.AddDbContext<BlogServiceContext>(options => options.UseSqlServer(connectionString));
 
 
